@@ -10,8 +10,7 @@ Pod::Spec.new do |s|
   s.library   = 'z'
   s.requires_arc = true
   
-  s.platform     = :ios
-  s.ios.deployment_target = '5.0'
+  s.platform     = :osx
 
   s.dependency 'AFNetworking'
   s.dependency 'xmlrpc'
