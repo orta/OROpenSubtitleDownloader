@@ -141,10 +141,15 @@ static NSString *OROpenSubtitlePath = @"xml-rpc";
 - (NSString *)generateUserAgent {
     NSString *appVersion = [[NSBundle mainBundle] infoDictionary][@"CFBundleShortVersionString"];
     NSString *appName    = [[NSBundle mainBundle] infoDictionary][@"CFBundleDisplayName"];
+
+#if defined(__IPHONE_OS_VERSION_MIN_REQUIRED)
     NSString *osVersion  = [[UIDevice currentDevice] systemVersion];
     NSString *device     = [[UIDevice currentDevice] model];
-
     return [NSString stringWithFormat:@"%@ v%@ ( %@ - %@ ) ", appName, appVersion, device, osVersion];
+#else
+    NSString *osVersion  = [[[NSProcessInfo processInfo] operatingSystemVersionString] componentsSeparatedByString:@" "][1];
+    return [NSString stringWithFormat:@"%@ v%@ ( Mac OS X %@ ) ", appName, appVersion, osVersion];
+#endif
 }
 
 #pragma mark -
