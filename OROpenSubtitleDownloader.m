@@ -6,7 +6,7 @@
 //  Copyright (c) 2012 ortatherox.com. All rights reserved.
 //
 
-#import "AFNetworking.h"
+#import <AFNetworking/AFNetworking.h>
 #import <zlib.h>
 
 #import "OROpenSubtitleDownloader.h"
@@ -219,7 +219,6 @@ static NSString *OROpenSubtitlePath = @"xml-rpc";
 - (void)request: (XMLRPCRequest *)request didCancelAuthenticationChallenge: (NSURLAuthenticationChallenge *)challenge {
     NSLog(@"%@ - %@", NSStringFromSelector(_cmd), challenge);
 }
-
 
 @end
 

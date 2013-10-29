@@ -6,8 +6,7 @@
 //  Copyright (c) 2012 ortatherox.com. All rights reserved.
 //
 
-#import <Foundation/Foundation.h>
-#import "XMLRPC.h"
+#import <XMLRPC/XMLRPC.h>
 
 @class OROpenSubtitleDownloader, OpenSubtitleSearchResult;
 
@@ -26,21 +25,31 @@ typedef enum {
 
 @end
 
+/// OROpenSubtitleDownloader makes it easier to handle downloading and searching
+/// for subtitles via the opensubtitles.org API
 
 @interface OROpenSubtitleDownloader : NSObject <XMLRPCConnectionDelegate>
 
-// By using init the object will create it's own user agent based on bundle info
+/// By using init the object will create it's own user agent based on bundle info
 - (OROpenSubtitleDownloader *)init;
+
+/// Use a custom user agent
 - (OROpenSubtitleDownloader *)initWithUserAgent:(NSString *)userAgent;
 
-@property (weak) NSObject <OROpenSubtitleDownloaderDelegate> *delegate;
-@property (readonly) OROpenSubtitleState state;
-@property (strong, nonatomic) NSString *languageString;
+/// The object that recieves notifications for new subtitles
+@property (nonatomic, weak) NSObject <OROpenSubtitleDownloaderDelegate> *delegate;
 
-// Search and get a return block with an array of OpenSubtitleSearchResult
+/// Internal state of subtitle downloader
+@property (nonatomic, readonly) OROpenSubtitleState state;
+
+/// Language string, defaults to "eng", 
+/// See: http://www.opensubtitles.org/addons/export_languages.php for full list
+@property (nonatomic, strong) NSString *languageString;
+
+/// Search and get a return block with an array of OpenSubtitleSearchResult
 - (void)searchForSubtitlesWithHash:(NSString *)hash andFilesize:(NSNumber *)filesize :(void(^) (NSArray *subtitles))searchResult;
 
-// Download a subtitle result to a file after being unzipped
+/// Downloads a subtitle result to a file after being unzipped
 - (void)downloadSubtitlesForResult:(OpenSubtitleSearchResult *)result toPath:(NSString *)path :(void(^)())onResultsFound;
 @end
 
