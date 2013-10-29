@@ -73,19 +73,22 @@ static NSString *OROpenSubtitlePath = @"xml-rpc";
 - (void)searchForSubtitlesWithHash:(NSString *)hash andFilesize:(NSNumber *)filesize :(void(^) (NSArray *subtitles))searchResult  {
     XMLRPCRequest *request = [self generateRequest];
     NSDecimalNumber *decimalFilesize = [NSDecimalNumber decimalNumberWithString:filesize.stringValue];
-    NSDictionary *params = @{
-        @"moviebytesize" : decimalFilesize,
-        @"moviehash" : hash,
-        @"sublanguageid" : _languageString
-    };
-    
-    [request setMethod:@"SearchSubtitles" withParameters:@[_authToken, @[params] ]];
 
-    NSString *searchHashCompleteID  = [NSString stringWithFormat:@"Search%@Complete", hash];
-    [_blockResponses setObject:[searchResult copy] forKey:searchHashCompleteID];
+    if (decimalFilesize &&hash && _languageString && _authToken){
+        NSDictionary *params = @{
+            @"moviebytesize" : decimalFilesize,
+            @"moviehash" : hash,
+            @"sublanguageid" : _languageString
+        };
+        
+        [request setMethod:@"SearchSubtitles" withParameters:@[_authToken, @[params] ]];
 
-    XMLRPCConnectionManager *manager = [XMLRPCConnectionManager sharedManager];
-    [manager spawnConnectionWithXMLRPCRequest:request delegate:self];
+        NSString *searchHashCompleteID  = [NSString stringWithFormat:@"Search%@Complete", hash];
+        [_blockResponses setObject:[searchResult copy] forKey:searchHashCompleteID];
+
+        XMLRPCConnectionManager *manager = [XMLRPCConnectionManager sharedManager];
+        [manager spawnConnectionWithXMLRPCRequest:request delegate:self];
+    }
 }
 
 
