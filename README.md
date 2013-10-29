@@ -5,7 +5,7 @@ An Obj-C API for Searching and Downloading Subtitles from OpenSubtitles. Current
 
 [OpenSubtitles Documentation](http://trac.opensubtitles.org/projects/opensubtitles/wiki/XmlRpcIntro)
 
-```
+``` objc
 /// OROpenSubtitleDownloader makes it easier to handle downloading and searching
 /// for subtitles via the opensubtitles.org API
 
