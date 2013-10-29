@@ -10,7 +10,7 @@ Pod::Spec.new do |s|
   s.library   = 'z'
   s.requires_arc = true
   
-  s.ios.deployment_target = '4.0'
+  s.ios.deployment_target = '5.0'
   s.osx.deployment_target = '10.7'
 
   s.dependency 'AFNetworking', "~> 1.0"
