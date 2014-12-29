@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name         = "OROpenSubtitleDownloader"
-  s.version      = "1.0.0"
+  s.version      = "1.1.0"
   s.summary      = "An Obj-C API for Searching and Downloading Subtitles from OpenSubtitles."
   s.homepage     = "https://github.com/orta/OROpenSubtitleDownloader"
   s.license      = { :type => 'BSD', :file => 'LICENSE' }
@@ -10,8 +10,8 @@ Pod::Spec.new do |s|
   s.library   = 'z'
   s.requires_arc = true
   
-  s.ios.deployment_target = '5.0'
-  s.osx.deployment_target = '10.7'
+  s.ios.deployment_target = '6.0'
+  s.osx.deployment_target = '10.8'
 
   s.dependency 'AFNetworking', "~> 1.0"
   s.dependency 'xmlrpc'
