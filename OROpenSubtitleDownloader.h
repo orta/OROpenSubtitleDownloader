@@ -53,6 +53,15 @@ typedef enum {
 - (void)downloadSubtitlesForResult:(OpenSubtitleSearchResult *)result toPath:(NSString *)path :(void(^)())onResultsFound;
 @end
 
+@interface OpenSubtitleLanguageResult : NSObject
+
++ (OpenSubtitleLanguageResult *)resultFromDictionary:(NSDictionary *)dictionary;
+
+@property (copy) NSString *subLanguageID;
+@property (copy) NSString *localizedLanguageName;
+@property (copy) NSString *iso639Language;
+
+@end
 
 @interface OpenSubtitleSearchResult : NSObject
 

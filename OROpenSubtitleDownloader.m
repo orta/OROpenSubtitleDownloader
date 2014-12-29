@@ -14,6 +14,8 @@
 static NSString *OROpenSubtitleURL  = @"http://api.opensubtitles.org/";
 static NSString *OROpenSubtitlePath = @"xml-rpc";
 
+static NSString * const kRequest_GetSubLanguages = @"GetSubLanguages";
+
 @interface OROpenSubtitleDownloader(){
     NSString *_authToken;
     NSString *_userAgent;
@@ -66,6 +68,21 @@ static NSString *OROpenSubtitlePath = @"xml-rpc";
     [request setMethod: @"LogIn" withParameters:@[@"", @"" , @"" , _userAgent]];
 
     // Start up the xmlrpc engine
+    XMLRPCConnectionManager *manager = [XMLRPCConnectionManager sharedManager];
+    [manager spawnConnectionWithXMLRPCRequest:request delegate:self];
+}
+
+- (void)supportedLanguagesList:(void(^)(NSArray *languages))languagesResult
+{
+    XMLRPCRequest *request = [self generateRequest];
+    
+    NSString *currentLocaleCode = [[NSLocale currentLocale] objectForKey:NSLocaleLanguageCode];
+    NSDictionary *params = @{@"language" : currentLocaleCode};
+    
+    [request setMethod:kRequest_GetSubLanguages withParameters:@[params]];
+    
+    [_blockResponses setObject:[languagesResult copy] forKey:kRequest_GetSubLanguages];
+    
     XMLRPCConnectionManager *manager = [XMLRPCConnectionManager sharedManager];
     [manager spawnConnectionWithXMLRPCRequest:request delegate:self];
 }
@@ -180,6 +197,24 @@ static NSString *OROpenSubtitlePath = @"xml-rpc";
             [_delegate openSubtitlerDidLogIn:self];
         }
     }
+    
+    // Languages search
+    if([request.method isEqualToString:kRequest_GetSubLanguages])
+    {
+        NSMutableArray *languages = [NSMutableArray new];
+        
+        if ([response.object[@"data"] isKindOfClass:[NSArray class]]) {
+            for (NSDictionary *dictionary in response.object[@"data"]) {
+                [languages addObject:[OpenSubtitleLanguageResult resultFromDictionary:dictionary]];
+            }
+        }
+        
+        void (^resultsBlock)(NSArray *languages) = [_blockResponses objectForKey:kRequest_GetSubLanguages];
+        
+        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^(void) {
+            resultsBlock(languages);
+        });
+    }
 
     // Searched, convert to objects and pass back
     if ([request.method isEqualToString:@"SearchSubtitles"]) {
@@ -222,6 +257,19 @@ static NSString *OROpenSubtitlePath = @"xml-rpc";
 
 @end
 
+@implementation OpenSubtitleLanguageResult
+
++ (OpenSubtitleLanguageResult *)resultFromDictionary:(NSDictionary *)dictionary {
+    OpenSubtitleLanguageResult *object = [[OpenSubtitleLanguageResult alloc] init];
+    
+    object.subLanguageID         = dictionary[@"SubLanguageID"];
+    object.localizedLanguageName = dictionary[@"LanguageName"];
+    object.iso639Language        = dictionary[@"ISO639"];
+    
+    return object;
+}
+
+@end
 
 @implementation OpenSubtitleSearchResult
 
