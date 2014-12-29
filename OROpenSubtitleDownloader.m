@@ -230,6 +230,7 @@ static NSString *OROpenSubtitlePath = @"xml-rpc";
 
     object.subtitleID = dictionary[@"IDSubtitleFile"];
     object.subtitleLanguage = dictionary[@"SubLanguageID"];
+    object.imdbID = dictionary[@"IDMovieImdb"];
     object.iso639Language = dictionary[@"ISO639"];
     object.subtitleDownloadAddress = dictionary[@"SubDownloadLink"];
 
