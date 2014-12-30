@@ -59,6 +59,7 @@ typedef enum {
 + (OpenSubtitleSearchResult *)resultFromDictionary:(NSDictionary *)dictionary;
 
 @property (copy) NSString *subtitleID;
+@property (copy) NSString *imdbID;
 @property (copy) NSString *subtitleLanguage;
 @property (copy) NSString *iso639Language;
 @property (copy) NSString *subtitleDownloadAddress;

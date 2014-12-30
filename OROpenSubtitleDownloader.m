@@ -229,6 +229,7 @@ static NSString *OROpenSubtitlePath = @"xml-rpc";
     OpenSubtitleSearchResult *object = [[OpenSubtitleSearchResult alloc] init];
 
     object.subtitleID = dictionary[@"IDSubtitleFile"];
+    object.imdbID = dictionary[@"IDMovieImdb"];
     object.subtitleLanguage = dictionary[@"SubLanguageID"];
     object.iso639Language = dictionary[@"ISO639"];
     object.subtitleDownloadAddress = dictionary[@"SubDownloadLink"];
