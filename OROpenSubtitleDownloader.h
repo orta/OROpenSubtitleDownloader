@@ -48,7 +48,7 @@ typedef enum {
 
 /// Get the opensubtitles supported language list localized in system's locale
 /// @return an array of `OpenSubtitleLanguageResult` instances
-- (void)supportedLanguagesList:(void(^)(NSArray *languages))languagesResult
+- (void)supportedLanguagesList:(void(^)(NSArray *languages))languagesResult;
 
 /// Search and get a return block with an array of OpenSubtitleSearchResult
 - (void)searchForSubtitlesWithHash:(NSString *)hash andFilesize:(NSNumber *)filesize :(void(^) (NSArray *subtitles))searchResult;
