@@ -108,6 +108,28 @@ static NSString * const kRequest_GetSubLanguages = @"GetSubLanguages";
     }
 }
 
+- (void)searchForSubtitlesWithQuery:(NSString *)query :(void(^) (NSArray *subtitles))searchResult
+{
+    XMLRPCRequest *request = [self generateRequest];
+    NSDecimalNumber *decimalFilesize = [NSDecimalNumber decimalNumberWithString:filesize.stringValue];
+    
+    if (query && _languageString && _authToken)
+    {
+        NSDictionary *params = @{
+                                 @"query" : query,
+                                 @"sublanguageid" : _languageString
+                                 };
+        
+        [request setMethod:@"SearchSubtitles" withParameters:@[_authToken, @[params] ]];
+        
+        NSString *searchQueryCompleteID  = [NSString stringWithFormat:@"Search%@Complete", query];
+        [_blockResponses setObject:[searchResult copy] forKey:searchQueryCompleteID];
+        
+        XMLRPCConnectionManager *manager = [XMLRPCConnectionManager sharedManager];
+        [manager spawnConnectionWithXMLRPCRequest:request delegate:self];
+    }
+}
+
 
 - (void)downloadSubtitlesForResult:(OpenSubtitleSearchResult *)result toPath:(NSString *)path :(void(^)())onResultsFound {
     // Download the subtitles using the HTTP request method
@@ -229,6 +251,7 @@ static NSString * const kRequest_GetSubLanguages = @"GetSubLanguages";
         }
 
         NSString *hash = request.parameters[1][0][@"moviehash"];
+        if(!hash) hash = request.parameters[1][0][@"query"];
         NSString *searchHashCompleteID  = [NSString stringWithFormat:@"Search%@Complete", hash];
 
         void (^resultsBlock)(NSArray *subtitles) = [_blockResponses objectForKey:searchHashCompleteID];

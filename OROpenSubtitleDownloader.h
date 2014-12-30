@@ -53,6 +53,9 @@ typedef enum {
 /// Search and get a return block with an array of OpenSubtitleSearchResult
 - (void)searchForSubtitlesWithHash:(NSString *)hash andFilesize:(NSNumber *)filesize :(void(^) (NSArray *subtitles))searchResult;
 
+/// Search with a text query and get a return block with an array of OpenSubtitleSearchResult
+- (void)searchForSubtitlesWithQuery:(NSString *)query :(void(^) (NSArray *subtitles))searchResult;
+
 /// Downloads a subtitle result to a file after being unzipped
 - (void)downloadSubtitlesForResult:(OpenSubtitleSearchResult *)result toPath:(NSString *)path :(void(^)())onResultsFound;
 @end
