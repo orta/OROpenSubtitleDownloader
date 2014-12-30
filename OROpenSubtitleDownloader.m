@@ -111,7 +111,6 @@ static NSString * const kRequest_GetSubLanguages = @"GetSubLanguages";
 - (void)searchForSubtitlesWithQuery:(NSString *)query :(void(^) (NSArray *subtitles))searchResult
 {
     XMLRPCRequest *request = [self generateRequest];
-    NSDecimalNumber *decimalFilesize = [NSDecimalNumber decimalNumberWithString:filesize.stringValue];
     
     if (query && _languageString && _authToken)
     {
