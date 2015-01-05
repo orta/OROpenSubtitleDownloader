@@ -80,6 +80,7 @@ typedef enum {
 @property (copy) NSString *subtitleRating;
 @property (copy) NSString *subtitleFormat;
 @property (copy) NSString *imdbID;
+@property (copy) NSString *movieYear;
 @property (copy) NSString *iso639Language;
 @property (copy) NSString *subtitleDownloadAddress;
 

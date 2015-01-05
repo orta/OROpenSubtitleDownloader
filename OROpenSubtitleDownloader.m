@@ -304,6 +304,7 @@ static NSString * const kRequest_GetSubLanguages = @"GetSubLanguages";
     object.subtitleRating = dictionary[@"SubRating"];
     object.subtitleFormat = dictionary[@"SubFormat"];
     object.imdbID = dictionary[@"IDMovieImdb"];
+    object.movieYear = dictionary[@"MovieYear"];
     object.iso639Language = dictionary[@"ISO639"];
     object.subtitleDownloadAddress = dictionary[@"SubDownloadLink"];
 
