@@ -130,7 +130,7 @@ static NSString * const kRequest_GetSubLanguages = @"GetSubLanguages";
 }
 
 
-- (void)downloadSubtitlesForResult:(OpenSubtitleSearchResult *)result toPath:(NSString *)path :(void(^)())onResultsFound {
+- (void)downloadSubtitlesForResult:(OpenSubtitleSearchResult *)result toPath:(NSString *)path :(void(^)(NSString *path, NSError *error))onResultsFound {
     // Download the subtitles using the HTTP request method
     // as doing it through XMLRPC was proving unpredictable
 
@@ -138,16 +138,17 @@ static NSString * const kRequest_GetSubLanguages = @"GetSubLanguages";
     NSURLRequest *urlRequest = [NSURLRequest requestWithURL:url];
     AFHTTPRequestOperation *subtitleDownloadRequest = [[AFHTTPRequestOperation alloc] initWithRequest:urlRequest];
 
-    [subtitleDownloadRequest setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
-
+    [subtitleDownloadRequest setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject)
+    {
         NSString *tempPath = [NSTemporaryDirectory() stringByAppendingPathComponent:@"subtitle.gzip"];
         [operation.responseData writeToFile:tempPath atomically:YES];
         [self unzipFileAtPath:tempPath toPath:path];
 
-        onResultsFound(path);
+        if(onResultsFound) onResultsFound(path, nil);
 
-    } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-        NSLog(@"not ok");
+    } failure:^(AFHTTPRequestOperation *operation, NSError *error)
+    {
+        if(onResultsFound) onResultsFound(nil, error);
     }];
     
     [subtitleDownloadRequest start];
