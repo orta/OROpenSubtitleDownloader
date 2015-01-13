@@ -48,13 +48,13 @@ typedef enum {
 
 /// Get the opensubtitles supported language list localized in system's locale
 /// @return an array of `OpenSubtitleLanguageResult` instances
-- (void)supportedLanguagesList:(void(^)(NSArray *languages))languagesResult;
+- (void)supportedLanguagesList:(void(^)(NSArray *languages, NSError *error))languagesResult;
 
 /// Search and get a return block with an array of OpenSubtitleSearchResult
-- (void)searchForSubtitlesWithHash:(NSString *)hash andFilesize:(NSNumber *)filesize :(void(^) (NSArray *subtitles))searchResult;
+- (void)searchForSubtitlesWithHash:(NSString *)hash andFilesize:(NSNumber *)filesize :(void(^) (NSArray *subtitles, NSError *error))searchResult;
 
 /// Search with a text query and get a return block with an array of OpenSubtitleSearchResult
-- (void)searchForSubtitlesWithQuery:(NSString *)query :(void(^) (NSArray *subtitles))searchResult;
+- (void)searchForSubtitlesWithQuery:(NSString *)query :(void(^) (NSArray *subtitles, NSError *error))searchResult;
 
 /// Downloads a subtitle result to a file after being unzipped
 - (void)downloadSubtitlesForResult:(OpenSubtitleSearchResult *)result toPath:(NSString *)path :(void(^)(NSString *path, NSError *error))onResultsFound;
