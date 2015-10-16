@@ -14,6 +14,9 @@
 static NSString *OROpenSubtitleURL  = @"http://api.opensubtitles.org/";
 static NSString *OROpenSubtitlePath = @"xml-rpc";
 
+static NSString * const kRequest_GetSubLanguages = @"GetSubLanguages";
+static NSString * const kRequest_SearchSubtitles = @"SearchSubtitles";
+
 @interface OROpenSubtitleDownloader(){
     NSString *_authToken;
     NSString *_userAgent;
@@ -70,7 +73,22 @@ static NSString *OROpenSubtitlePath = @"xml-rpc";
     [manager spawnConnectionWithXMLRPCRequest:request delegate:self];
 }
 
-- (void)searchForSubtitlesWithHash:(NSString *)hash andFilesize:(NSNumber *)filesize :(void(^) (NSArray *subtitles))searchResult  {
+- (void)supportedLanguagesList:(void(^)(NSArray *languages, NSError *error))languagesResult
+{
+    XMLRPCRequest *request = [self generateRequest];
+    
+    NSString *currentLocaleCode = [[NSLocale currentLocale] objectForKey:NSLocaleLanguageCode];
+    NSDictionary *params = @{@"language" : currentLocaleCode};
+    
+    [request setMethod:kRequest_GetSubLanguages withParameters:@[params]];
+    
+    [_blockResponses setObject:[languagesResult copy] forKey:kRequest_GetSubLanguages];
+    
+    XMLRPCConnectionManager *manager = [XMLRPCConnectionManager sharedManager];
+    [manager spawnConnectionWithXMLRPCRequest:request delegate:self];
+}
+
+- (void)searchForSubtitlesWithHash:(NSString *)hash andFilesize:(NSNumber *)filesize :(void(^) (NSArray *subtitles, NSError *error))searchResult  {
     XMLRPCRequest *request = [self generateRequest];
     NSDecimalNumber *decimalFilesize = [NSDecimalNumber decimalNumberWithString:filesize.stringValue];
 
@@ -81,7 +99,7 @@ static NSString *OROpenSubtitlePath = @"xml-rpc";
             @"sublanguageid" : _languageString
         };
         
-        [request setMethod:@"SearchSubtitles" withParameters:@[_authToken, @[params] ]];
+        [request setMethod:kRequest_SearchSubtitles withParameters:@[_authToken, @[params] ]];
 
         NSString *searchHashCompleteID  = [NSString stringWithFormat:@"Search%@Complete", hash];
         [_blockResponses setObject:[searchResult copy] forKey:searchHashCompleteID];
@@ -91,8 +109,30 @@ static NSString *OROpenSubtitlePath = @"xml-rpc";
     }
 }
 
+- (void)searchForSubtitlesWithQuery:(NSString *)query :(void(^) (NSArray *subtitles, NSError *error))searchResult
+{
+    XMLRPCRequest *request = [self generateRequest];
+    
+    if (query && _languageString && _authToken)
+    {
+        NSDictionary *params = @{
+                                 @"query" : query,
+                                 @"sublanguageid" : _languageString
+                                 };
+        
+        [request setMethod:kRequest_SearchSubtitles withParameters:@[_authToken, @[params] ]];
+        
+        NSString *searchQueryCompleteID  = [NSString stringWithFormat:@"Search%@Complete", query];
+        [_blockResponses setObject:[searchResult copy] forKey:searchQueryCompleteID];
+        
+        XMLRPCConnectionManager *manager = [XMLRPCConnectionManager sharedManager];
+        [manager spawnConnectionWithXMLRPCRequest:request delegate:self];
+    }
+}
 
-- (void)downloadSubtitlesForResult:(OpenSubtitleSearchResult *)result toPath:(NSString *)path :(void(^)())onResultsFound {
+
+- (void)downloadSubtitlesForResult:(OpenSubtitleSearchResult *)result toPath:(NSString *)path :(void(^)(NSString *path, NSError *error))onResultsFound
+{
     // Download the subtitles using the HTTP request method
     // as doing it through XMLRPC was proving unpredictable
 
@@ -106,10 +146,11 @@ static NSString *OROpenSubtitlePath = @"xml-rpc";
         [operation.responseData writeToFile:tempPath atomically:YES];
         [self unzipFileAtPath:tempPath toPath:path];
 
-        onResultsFound(path);
+        if(onResultsFound) onResultsFound(path, nil);
 
-    } failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-        NSLog(@"not ok");
+    } failure:^(AFHTTPRequestOperation *operation, NSError *error)
+    {
+        if(onResultsFound) onResultsFound(nil, error);
     }];
     
     [subtitleDownloadRequest start];
@@ -180,9 +221,28 @@ static NSString *OROpenSubtitlePath = @"xml-rpc";
             [_delegate openSubtitlerDidLogIn:self];
         }
     }
+    
+    // Languages search
+    if([request.method isEqualToString:kRequest_GetSubLanguages])
+    {
+        NSMutableArray *languages = [NSMutableArray new];
+        
+        if ([response.object[@"data"] isKindOfClass:[NSArray class]]) {
+            for (NSDictionary *dictionary in response.object[@"data"]) {
+                [languages addObject:[OpenSubtitleLanguageResult resultFromDictionary:dictionary]];
+            }
+        }
+        
+        void (^resultsBlock)(NSArray *languages, NSError *error) = [_blockResponses objectForKey:kRequest_GetSubLanguages];
+        
+        dispatch_async(dispatch_get_main_queue(), ^(void) {
+            resultsBlock(languages, nil);
+        });
+    }
 
     // Searched, convert to objects and pass back
-    if ([request.method isEqualToString:@"SearchSubtitles"]) {
+    if ([request.method isEqualToString:kRequest_SearchSubtitles])
+    {
         _state = OROpenSubtitleStateDownloading;
         NSMutableArray *searchResults = [NSMutableArray array];
 
@@ -194,18 +254,43 @@ static NSString *OROpenSubtitlePath = @"xml-rpc";
         }
 
         NSString *hash = request.parameters[1][0][@"moviehash"];
+        if(!hash) hash = request.parameters[1][0][@"query"];
         NSString *searchHashCompleteID  = [NSString stringWithFormat:@"Search%@Complete", hash];
 
-        void (^resultsBlock)(NSArray *subtitles) = [_blockResponses objectForKey:searchHashCompleteID];
+        void (^resultsBlock)(NSArray *subtitles, NSError *error) = [_blockResponses objectForKey:searchHashCompleteID];
 
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^(void) {
-            resultsBlock(searchResults);
+        dispatch_async(dispatch_get_main_queue(), ^(void) {
+            resultsBlock(searchResults, nil);
         });
     }
 }
 
 - (void)request: (XMLRPCRequest *)request didFailWithError: (NSError *)error {
     NSLog(@"%@ - %@", NSStringFromSelector(_cmd), error.localizedDescription);
+    
+    // Languages search
+    if([request.method isEqualToString:kRequest_GetSubLanguages])
+    {
+        void (^resultsBlock)(NSArray *languages, NSError *error) = [_blockResponses objectForKey:kRequest_GetSubLanguages];
+        
+        dispatch_async(dispatch_get_main_queue(), ^(void) {
+            resultsBlock(nil, error);
+        });
+    }
+    
+    // Search requests
+    if([request.method isEqualToString:kRequest_SearchSubtitles])
+    {
+        NSString *hash = request.parameters[1][0][@"moviehash"];
+        if(!hash) hash = request.parameters[1][0][@"query"];
+        NSString *searchHashCompleteID  = [NSString stringWithFormat:@"Search%@Complete", hash];
+        
+        void (^resultsBlock)(NSArray *subtitles, NSError *error) = [_blockResponses objectForKey:searchHashCompleteID];
+        
+        dispatch_async(dispatch_get_main_queue(), ^(void) {
+            resultsBlock(nil, error);
+        });
+    }
 }
 
 - (BOOL)request: (XMLRPCRequest *)request canAuthenticateAgainstProtectionSpace: (NSURLProtectionSpace *)protectionSpace {
@@ -222,6 +307,19 @@ static NSString *OROpenSubtitlePath = @"xml-rpc";
 
 @end
 
+@implementation OpenSubtitleLanguageResult
+
++ (OpenSubtitleLanguageResult *)resultFromDictionary:(NSDictionary *)dictionary {
+    OpenSubtitleLanguageResult *object = [[OpenSubtitleLanguageResult alloc] init];
+    
+    object.subLanguageID         = dictionary[@"SubLanguageID"];
+    object.localizedLanguageName = dictionary[@"LanguageName"];
+    object.iso639Language        = dictionary[@"ISO639"];
+    
+    return object;
+}
+
+@end
 
 @implementation OpenSubtitleSearchResult
 
@@ -231,6 +329,11 @@ static NSString *OROpenSubtitlePath = @"xml-rpc";
     object.subtitleID = dictionary[@"IDSubtitleFile"];
     object.imdbID = dictionary[@"IDMovieImdb"];
     object.subtitleLanguage = dictionary[@"SubLanguageID"];
+    object.subtitleName = dictionary[@"SubFileName"];
+    object.subtitleRating = dictionary[@"SubRating"];
+    object.subtitleFormat = dictionary[@"SubFormat"];
+    object.imdbID = dictionary[@"IDMovieImdb"];
+    object.movieYear = dictionary[@"MovieYear"];
     object.iso639Language = dictionary[@"ISO639"];
     object.subtitleDownloadAddress = dictionary[@"SubDownloadLink"];
 

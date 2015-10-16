@@ -46,13 +46,29 @@ typedef enum {
 /// See: http://www.opensubtitles.org/addons/export_languages.php for full list
 @property (nonatomic, strong) NSString *languageString;
 
+/// Get the opensubtitles supported language list localized in system's locale
+/// @return an array of `OpenSubtitleLanguageResult` instances
+- (void)supportedLanguagesList:(void(^)(NSArray *languages, NSError *error))languagesResult;
+
 /// Search and get a return block with an array of OpenSubtitleSearchResult
-- (void)searchForSubtitlesWithHash:(NSString *)hash andFilesize:(NSNumber *)filesize :(void(^) (NSArray *subtitles))searchResult;
+- (void)searchForSubtitlesWithHash:(NSString *)hash andFilesize:(NSNumber *)filesize :(void(^) (NSArray *subtitles, NSError *error))searchResult;
+
+/// Search with a text query and get a return block with an array of OpenSubtitleSearchResult
+- (void)searchForSubtitlesWithQuery:(NSString *)query :(void(^) (NSArray *subtitles, NSError *error))searchResult;
 
 /// Downloads a subtitle result to a file after being unzipped
-- (void)downloadSubtitlesForResult:(OpenSubtitleSearchResult *)result toPath:(NSString *)path :(void(^)())onResultsFound;
+- (void)downloadSubtitlesForResult:(OpenSubtitleSearchResult *)result toPath:(NSString *)path :(void(^)(NSString *path, NSError *error))onResultsFound;
 @end
 
+@interface OpenSubtitleLanguageResult : NSObject
+
++ (OpenSubtitleLanguageResult *)resultFromDictionary:(NSDictionary *)dictionary;
+
+@property (copy) NSString *subLanguageID;
+@property (copy) NSString *localizedLanguageName;
+@property (copy) NSString *iso639Language;
+
+@end
 
 @interface OpenSubtitleSearchResult : NSObject
 
@@ -61,6 +77,11 @@ typedef enum {
 @property (copy) NSString *subtitleID;
 @property (copy) NSString *imdbID;
 @property (copy) NSString *subtitleLanguage;
+@property (copy) NSString *subtitleName;
+@property (copy) NSString *subtitleRating;
+@property (copy) NSString *subtitleFormat;
+@property (copy) NSString *imdbID;
+@property (copy) NSString *movieYear;
 @property (copy) NSString *iso639Language;
 @property (copy) NSString *subtitleDownloadAddress;
 
