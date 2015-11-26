@@ -76,14 +76,14 @@ static NSString * const kRequest_SearchSubtitles = @"SearchSubtitles";
 - (void)supportedLanguagesList:(void(^)(NSArray *languages, NSError *error))languagesResult
 {
     XMLRPCRequest *request = [self generateRequest];
-    
+
     NSString *currentLocaleCode = [[NSLocale currentLocale] objectForKey:NSLocaleLanguageCode];
     NSDictionary *params = @{@"language" : currentLocaleCode};
-    
+
     [request setMethod:kRequest_GetSubLanguages withParameters:@[params]];
-    
+
     [_blockResponses setObject:[languagesResult copy] forKey:kRequest_GetSubLanguages];
-    
+
     XMLRPCConnectionManager *manager = [XMLRPCConnectionManager sharedManager];
     [manager spawnConnectionWithXMLRPCRequest:request delegate:self];
 }
@@ -98,7 +98,7 @@ static NSString * const kRequest_SearchSubtitles = @"SearchSubtitles";
             @"moviehash" : hash,
             @"sublanguageid" : _languageString
         };
-        
+
         [request setMethod:kRequest_SearchSubtitles withParameters:@[_authToken, @[params] ]];
 
         NSString *searchHashCompleteID  = [NSString stringWithFormat:@"Search%@Complete", hash];
@@ -112,19 +112,19 @@ static NSString * const kRequest_SearchSubtitles = @"SearchSubtitles";
 - (void)searchForSubtitlesWithQuery:(NSString *)query :(void(^) (NSArray *subtitles, NSError *error))searchResult
 {
     XMLRPCRequest *request = [self generateRequest];
-    
+
     if (query && _languageString && _authToken)
     {
         NSDictionary *params = @{
                                  @"query" : query,
                                  @"sublanguageid" : _languageString
                                  };
-        
+
         [request setMethod:kRequest_SearchSubtitles withParameters:@[_authToken, @[params] ]];
-        
+
         NSString *searchQueryCompleteID  = [NSString stringWithFormat:@"Search%@Complete", query];
         [_blockResponses setObject:[searchResult copy] forKey:searchQueryCompleteID];
-        
+
         XMLRPCConnectionManager *manager = [XMLRPCConnectionManager sharedManager];
         [manager spawnConnectionWithXMLRPCRequest:request delegate:self];
     }
@@ -136,24 +136,40 @@ static NSString * const kRequest_SearchSubtitles = @"SearchSubtitles";
     // Download the subtitles using the HTTP request method
     // as doing it through XMLRPC was proving unpredictable
 
-    NSURL *url = [NSURL URLWithString:result.subtitleDownloadAddress];
-    NSURLRequest *urlRequest = [NSURLRequest requestWithURL:url];
-    AFHTTPRequestOperation *subtitleDownloadRequest = [[AFHTTPRequestOperation alloc] initWithRequest:urlRequest];
+    NSURL *dURL = [NSURL URLWithString:result.subtitleDownloadAddress];
 
-    [subtitleDownloadRequest setCompletionBlockWithSuccess:^(AFHTTPRequestOperation *operation, id responseObject) {
+    NSURLSessionConfiguration *configuration = [NSURLSessionConfiguration defaultSessionConfiguration];
+    AFURLSessionManager *manager = [[AFURLSessionManager alloc] initWithSessionConfiguration:configuration];
 
-        NSString *tempPath = [NSTemporaryDirectory() stringByAppendingPathComponent:@"subtitle.gzip"];
-        [operation.responseData writeToFile:tempPath atomically:YES];
-        [self unzipFileAtPath:tempPath toPath:path];
+    NSURLRequest *request = [NSURLRequest requestWithURL:dURL];
 
-        if(onResultsFound) onResultsFound(path, nil);
+    BOOL requireUnzipping = [[dURL pathExtension] isEqualToString:@"gz"] || [[dURL pathExtension] isEqualToString:@"zip"];
 
-    } failure:^(AFHTTPRequestOperation *operation, NSError *error)
-    {
-        if(onResultsFound) onResultsFound(nil, error);
-    }];
-    
-    [subtitleDownloadRequest start];
+    __typeof__(self) __weak weakSelf = self;
+    NSURLSessionDownloadTask *downloadTask = [manager downloadTaskWithRequest:request
+                                                                     progress:nil
+                                                                  destination:^NSURL *(NSURL *targetPath, NSURLResponse *response)
+                                              {
+                                                  NSString *suggestedPath = [NSTemporaryDirectory() stringByAppendingPathComponent:[response suggestedFilename]];
+
+                                                  return requireUnzipping? [NSURL fileURLWithPath:suggestedPath] : path;
+                                              }
+                                                            completionHandler:^(NSURLResponse *response, NSURL *filePath, NSError *error)
+                                              {
+                                                  if(requireUnzipping && !error)
+                                                  {
+                                                      [weakSelf unzipFileAtPath:[filePath path] toPath:path];
+
+                                                      NSError *rError = nil;
+                                                      [[NSFileManager defaultManager] removeItemAtURL:filePath error:&rError];
+                                                      if(rError) { NSLog(@"[Warning] Error while removing tmp downloaded zip file: %@", rError); }
+
+                                                      if(onResultsFound) { onResultsFound(path, rError); }
+                                                  }
+                                                  else if(onResultsFound) { onResultsFound(path, error); }
+                                              }];
+
+    [downloadTask resume];
 }
 
 #pragma mark -
@@ -221,20 +237,20 @@ static NSString * const kRequest_SearchSubtitles = @"SearchSubtitles";
             [_delegate openSubtitlerDidLogIn:self];
         }
     }
-    
+
     // Languages search
     if([request.method isEqualToString:kRequest_GetSubLanguages])
     {
         NSMutableArray *languages = [NSMutableArray new];
-        
+
         if ([response.object[@"data"] isKindOfClass:[NSArray class]]) {
             for (NSDictionary *dictionary in response.object[@"data"]) {
                 [languages addObject:[OpenSubtitleLanguageResult resultFromDictionary:dictionary]];
             }
         }
-        
+
         void (^resultsBlock)(NSArray *languages, NSError *error) = [_blockResponses objectForKey:kRequest_GetSubLanguages];
-        
+
         dispatch_async(dispatch_get_main_queue(), ^(void) {
             resultsBlock(languages, nil);
         });
@@ -267,26 +283,26 @@ static NSString * const kRequest_SearchSubtitles = @"SearchSubtitles";
 
 - (void)request: (XMLRPCRequest *)request didFailWithError: (NSError *)error {
     NSLog(@"%@ - %@", NSStringFromSelector(_cmd), error.localizedDescription);
-    
+
     // Languages search
     if([request.method isEqualToString:kRequest_GetSubLanguages])
     {
         void (^resultsBlock)(NSArray *languages, NSError *error) = [_blockResponses objectForKey:kRequest_GetSubLanguages];
-        
+
         dispatch_async(dispatch_get_main_queue(), ^(void) {
             resultsBlock(nil, error);
         });
     }
-    
+
     // Search requests
     if([request.method isEqualToString:kRequest_SearchSubtitles])
     {
         NSString *hash = request.parameters[1][0][@"moviehash"];
         if(!hash) hash = request.parameters[1][0][@"query"];
         NSString *searchHashCompleteID  = [NSString stringWithFormat:@"Search%@Complete", hash];
-        
+
         void (^resultsBlock)(NSArray *subtitles, NSError *error) = [_blockResponses objectForKey:searchHashCompleteID];
-        
+
         dispatch_async(dispatch_get_main_queue(), ^(void) {
             resultsBlock(nil, error);
         });
@@ -311,11 +327,11 @@ static NSString * const kRequest_SearchSubtitles = @"SearchSubtitles";
 
 + (OpenSubtitleLanguageResult *)resultFromDictionary:(NSDictionary *)dictionary {
     OpenSubtitleLanguageResult *object = [[OpenSubtitleLanguageResult alloc] init];
-    
+
     object.subLanguageID         = dictionary[@"SubLanguageID"];
     object.localizedLanguageName = dictionary[@"LanguageName"];
     object.iso639Language        = dictionary[@"ISO639"];
-    
+
     return object;
 }
 
@@ -341,4 +357,3 @@ static NSString * const kRequest_SearchSubtitles = @"SearchSubtitles";
 }
 
 @end
-
