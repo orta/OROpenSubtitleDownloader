@@ -18,9 +18,11 @@ typedef enum {
     OROpenSubtitleStateDownloaded
 } OROpenSubtitleState;
 
+/// Simple authentication delegate callback protocol
 
 @protocol OROpenSubtitleDownloaderDelegate <NSObject>
 @optional
+/// Called when the subtitler has logged in via XMLRPC
 - (void)openSubtitlerDidLogIn:(OROpenSubtitleDownloader *)downloader;
 
 @end
@@ -42,7 +44,7 @@ typedef enum {
 /// Internal state of subtitle downloader
 @property (nonatomic, readonly) OROpenSubtitleState state;
 
-/// Language string, defaults to "eng", 
+/// Language string, defaults to "eng",
 /// See: http://www.opensubtitles.org/addons/export_languages.php for full list
 @property (nonatomic, strong) NSString *languageString;
 
@@ -60,29 +62,53 @@ typedef enum {
 - (void)downloadSubtitlesForResult:(OpenSubtitleSearchResult *)result toPath:(NSString *)path :(void(^)(NSString *path, NSError *error))onResultsFound;
 @end
 
+
+/// A result object for a SRT language search
 @interface OpenSubtitleLanguageResult : NSObject
 
+/// ORM wrapper for the results
 + (OpenSubtitleLanguageResult *)resultFromDictionary:(NSDictionary *)dictionary;
 
+/// The language ID that we get from Open Subtitles
 @property (copy) NSString *subLanguageID;
+/// The language's name in it's own language
 @property (copy) NSString *localizedLanguageName;
+/// The ISO639 formatted id
 @property (copy) NSString *iso639Language;
 
 @end
 
+/// A result for a search for a hash / filesize
 @interface OpenSubtitleSearchResult : NSObject
 
+/// Simple ORM solution for getting native objects from JSON
 + (OpenSubtitleSearchResult *)resultFromDictionary:(NSDictionary *)dictionary;
 
+/// The Open Subtitles ID for the result
 @property (copy) NSString *subtitleID;
+
+/// The imdb ID for the result
 @property (copy) NSString *imdbID;
+
+/// The subtitle language in English ( I think )
 @property (copy) NSString *subtitleLanguage;
+
+/// The name of the subtitle, usually the scour who released it
 @property (copy) NSString *subtitleName;
+
+/// The rating of the subtitles from open subtitles
 @property (copy) NSString *subtitleRating;
+
+/// The file format of the subtitles
 @property (copy) NSString *subtitleFormat;
-@property (copy) NSString *imdbID;
+
+/// When the media content came out
 @property (copy) NSString *movieYear;
+
+/// The standard for the language
 @property (copy) NSString *iso639Language;
+
+/// The download address accesible via HTTP
 @property (copy) NSString *subtitleDownloadAddress;
 
 @end
