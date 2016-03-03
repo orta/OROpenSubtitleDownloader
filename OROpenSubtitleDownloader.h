@@ -38,6 +38,9 @@ typedef enum {
 /// Use a custom user agent
 - (OROpenSubtitleDownloader *)initWithUserAgent:(NSString *)userAgent;
 
+/// Use a custom user agent
+- (OROpenSubtitleDownloader *)initWithUserAgent:(NSString *)userAgent delegate:(id<OROpenSubtitleDownloaderDelegate>) delegate NS_DESIGNATED_INITIALIZER;
+
 /// The object that recieves notifications for new subtitles
 @property (nonatomic, weak) NSObject <OROpenSubtitleDownloaderDelegate> *delegate;
 
