@@ -32,14 +32,19 @@ static NSString * const kRequest_SearchSubtitles = @"SearchSubtitles";
 #pragma mark Init
 
 - (OROpenSubtitleDownloader *)init {
-    return [self initWithUserAgent:[self generateUserAgent]];
+    return [self initWithUserAgent:[self generateUserAgent] delegate:nil];
 }
 
 - (OROpenSubtitleDownloader *)initWithUserAgent:(NSString *)userAgent {
+    return [self initWithUserAgent:userAgent delegate:nil];
+}
+
+- (OROpenSubtitleDownloader *)initWithUserAgent:(NSString *)userAgent delegate:(id<OROpenSubtitleDownloaderDelegate>) delegate
+{
     self = [super init];
     if (!self) return nil;
 
-
+    _delegate = delegate;
     _userAgent = userAgent;
     _blockResponses = [NSMutableDictionary dictionary];
     _state = OROpenSubtitleStateLoggingIn;
